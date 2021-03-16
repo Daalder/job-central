@@ -7,6 +7,7 @@ use Illuminate\Queue\Events\JobExceptionOccurred;
 use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobFailed;
+use Illuminate\Queue\Events\JobQueued;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
@@ -102,25 +103,30 @@ class JobCentralServiceProvider extends ServiceProvider
     {
         parent::boot();
 
+        // TODO: create JCJob on JobQueued event
+//        $this->app['events']->listen(JobQueued::class, function(JobQueued $event) {
+//
+//        });
+
         Queue::before(function (JobProcessing $event) {
             // This job will now start running
-            $this->makeJCJob($event->job->getJobId(), $event->job->payload()['displayName']);
+            $this->makeJCJob($event->job->uuid(), $event->job->payload()['displayName']);
         });
 
         Queue::exceptionOccurred(function(JobExceptionOccurred $event) {
             // This job failed, but will be retried (removed and new instance with same payload queued)
-            $this->deleteJCJobIfStatusNotFailed($event->job->getJobId());
+            $this->deleteJCJobIfStatusNotFailed($event->job->uuid());
         });
 
         Queue::failing(function (JobFailed $event) {
             // This job failed, and won't be retried
-            $this->updateJCJobStatus($event->job->getJobId(), JCJob::FAILED);
-            $this->saveJobException($event->job->getJobId(), $event->exception);
+            $this->updateJCJobStatus($event->job->uuid(), JCJob::FAILED);
+            $this->saveJobException($event->job->uuid(), $event->exception);
         });
 
         Queue::after(function (JobProcessed $event) {
             // This job completed succesfully
-            $this->updateJCJobStatus($event->job->getJobId(), JCJob::SUCCEEDED);
+            $this->updateJCJobStatus($event->job->uuid(), JCJob::SUCCEEDED);
         });
 
         $this->publishes([
