@@ -1,8 +1,11 @@
 <?php
 
+namespace Database\Seeders;
+
 use Illuminate\Database\Seeder;
 use Daalder\JobCentral\Models\JCJob;
 use Carbon\Carbon;
+use Illuminate\Support\Arr;
 
 class JCSeeder extends Seeder
 {
@@ -29,25 +32,30 @@ class JCSeeder extends Seeder
     public function run(\Faker\Generator $faker)
     {
         $jcJobData = [];
+        $jcEnabledJobs = collect(config('job-central.groups'))
+            ->flatten()
+            ->map(function($jobClass) {
+                return Arr::last(explode('\\', $jobClass));
+            });
 
         for($i = 0; $i < 1000; $i++) {
-            $created_at = Carbon::now()->startOfDay()->subDays(rand(0, 10))->addHours(rand(0, 23))->addMinutes(rand(0, 59))->addSeconds(rand(0, 59));
-            $updated_at = $created_at->addDays(rand(0, 3));
+            $created_at = Carbon::now()->startOfDay()->subDays(mt_rand(0, 10))->addHours(mt_rand(0, 23))->addMinutes(mt_rand(0, 59))->addSeconds(mt_rand(0, 59));
+            $updated_at = $created_at->addHours(mt_rand(0, 3))->addMinutes(mt_rand(0, 59))->addSeconds(mt_rand(0, 59));
 
             $jcJob = [
-                'job_id' => md5(Carbon::now()->addSeconds(rand(0, 2000))),
-                'job_class' => 'TestingJob',
+                'job_id' => md5(Carbon::now()->addSeconds(mt_rand(0, 2000))),
+                'job_class' => $jcEnabledJobs->random(),
                 'created_at' => $created_at,
                 'updated_at' => $updated_at,
                 'finished_or_failed_at' => $updated_at,
             ];
 
-            if(rand(0,3) % 2 === 0 ) {
+            if(mt_rand(0,3) % 2 === 0 ) {
                 $jcJob['status'] = JCJob::SUCCEEDED;
                 $jcJob['exception'] = null;
             } else {
                 $jcJob['status'] = JCJob::FAILED;
-                $jcJob['exception'] = $this->exceptions[rand(0, count($this->exceptions) - 1)];
+                $jcJob['exception'] = $this->exceptions[mt_rand(0, count($this->exceptions) - 1)];
             }
 
             $jcJobData[] = $jcJob;

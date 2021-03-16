@@ -10,7 +10,7 @@ class RouteServiceProvider extends ServiceProvider
     /**
      * @var string
      */
-    protected $namespace = "JobCentral\Controllers";
+    protected $namespace = "Daalder\JobCentral\Controllers";
 
     /**
      * Define your route model bindings, pattern filters, etc.

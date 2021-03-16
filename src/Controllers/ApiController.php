@@ -138,7 +138,11 @@ class ApiController extends Controller
     }
 
     public function getJobsInGroup($group) {
-        $enabledJobs = collect(config('job-central.groups.' . $group));
+        if($group === '*') {
+            $enabledJobs = collect(config('job-central.groups'))->flatten();
+        } else {
+            $enabledJobs = collect(config('job-central.groups.' . $group));
+        }
 
         return $enabledJobs->map(function($jobClass) {
             return Arr::last(explode('\\', $jobClass));
@@ -168,44 +172,57 @@ class ApiController extends Controller
      * @return \Illuminate\Http\JsonResponse|void
      */
     public function groupJobRuns($group, $days) {
-//        $key = "job-central-group-runs-$group-$days";
+        // If $group isn't '*' and doesn't exist
+        if($group !== '*' && Arr::has(config('job-central.groups'), $group) === false) {
+            return;
+        }
 
-//        return $this->cacheRepository->remember($key, function () use ($group, $days) {
-            // If group doesn't exist
-            if(Arr::has(config('job-central.groups'), $group) === false) {
-                return;
+        $enabledJobs = $this->getJobsInGroup($group);
+
+        $labels = $series = $seriesNames = [];
+
+        if($days <= 3) {
+            for($i = 0; $i < $days * 24; $i += $days) {
+                $targetDate = now()->minute(0)->second(0)->subHour($i);
+                array_push($labels, $targetDate->format('H:00'));
             }
-
-            $enabledJobs = $this->getJobsInGroup($group);
-
-            $labels = $series = $seriesNames = [];
-
+            $labels = array_reverse($labels);
+        } else {
             for($i = 0; $i < $days; $i++) {
                 $targetDate = Carbon::today()->subDays($days - $i - 1);
-
                 array_push($labels, $targetDate->format('d-m'));
             }
+        }
 
-            foreach($enabledJobs as $jobClass) {
-                $serie = [];
+        foreach($enabledJobs as $jobClass) {
+            $serie = [];
 
+            if($days <= 3) {
+                for($i = 0; $i < $days * 24; $i += $days) {
+                    $startDate = now()->minute(0)->second(0)->subHour($i);
+                    $endDate = now()->minute(0)->second(0)->subHour($i)->addHours($days);
+
+                    $runs = JCJob::whereBetween('finished_or_failed_at', [$startDate, $endDate])
+                        ->where('job_class', $jobClass)->count();
+                    array_push($serie, $runs);
+                }
+                $serie = array_reverse($serie);
+            } else {
                 for($i = 0; $i < $days; $i++) {
                     $targetDate = Carbon::today()->subDays($days - $i - 1);
                     $runs = JCJob::whereDate('finished_or_failed_at', $targetDate)->where('job_class', $jobClass)->count();
 
                     array_push($serie, $runs);
                 }
-
-                array_push($series, $serie);
-                array_push($seriesNames, $jobClass);
             }
 
-            $payload = $this->makeLineChart($labels, $series, $seriesNames);
+            array_push($series, $serie);
+            array_push($seriesNames, $jobClass);
+        }
 
-            return response()->json($payload);
-//        }, [], function ($results) use ($group) {
-//            return $this->makeGroupCacheTags($group);
-//        });
+        $payload = $this->makeLineChart($labels, $series, $seriesNames);
+
+        return response()->json($payload);
     }
 
     /**
@@ -214,43 +231,37 @@ class ApiController extends Controller
      * @return \Illuminate\Http\JsonResponse|void
      */
     public function groupJobRunsResults($group, $days) {
-//        $key = "job-central-group-results-$group-$days";
+        // If group doesn't exist
+        if(Arr::has(config('job-central.groups'), $group) === false) {
+            return;
+        }
 
-//        return $this->cacheRepository->remember($key, function () use ($group, $days) {
-            // If group doesn't exist
-            if(Arr::has(config('job-central.groups'), $group) === false) {
-                return;
-            }
+        $enabledJobs = $this->getJobsInGroup($group)->toArray();
 
-            $enabledJobs = $this->getJobsInGroup($group)->toArray();
+        $categories = [];
+        $series = [[],[]];
 
-            $categories = [];
-            $series = [[],[]];
+        for($i = 0; $i < $days; $i++) {
+            $targetDate = Carbon::today()->subDays($days - $i -1);
 
-            for($i = 0; $i < $days; $i++) {
-                $targetDate = Carbon::today()->subDays($days - $i -1);
+            $categories[] = $targetDate->format('d-m');
 
-                $categories[] = $targetDate->format('d-m');
+            $failedJobs = JCJob::whereDate('finished_or_failed_at', $targetDate)
+                ->whereIn('job_class', $enabledJobs)
+                ->where('status', JCJob::FAILED)
+                ->count();
+            $successfulJobs = JCJob::whereDate('finished_or_failed_at', $targetDate)
+                ->whereIn('job_class', $enabledJobs)
+                ->where('status', JCJob::SUCCEEDED)
+                ->count();
 
-                $failedJobs = JCJob::whereDate('finished_or_failed_at', $targetDate)
-                    ->whereIn('job_class', $enabledJobs)
-                    ->where('status', JCJob::FAILED)
-                    ->count();
-                $successfulJobs = JCJob::whereDate('finished_or_failed_at', $targetDate)
-                    ->whereIn('job_class', $enabledJobs)
-                    ->where('status', JCJob::SUCCEEDED)
-                    ->count();
+            $series[0][] = $failedJobs;
+            $series[1][] = $successfulJobs;
+        }
 
-                $series[0][] = $failedJobs;
-                $series[1][] = $successfulJobs;
-            }
+        $payload = $this->makeColumnChart($categories, $series);
 
-            $payload = $this->makeColumnChart($categories, $series);
-
-            return response()->json($payload);
-//        }, [], function ($results) use ($group) {
-//            return $this->makeGroupCacheTags($group) ;
-//        });
+        return response()->json($payload);
     }
 
     /**
@@ -259,44 +270,36 @@ class ApiController extends Controller
      * @return \Illuminate\Http\JsonResponse|void
      */
     public function groupExceptions($group, $days) {
-//        $key = "job-central-group-exceptions-$group-$days";
+        // If group doesn't exist
+        if(Arr::has(config('job-central.groups'), $group) === false) {
+            return;
+        }
 
-//        return $this->cacheRepository->remember($key, function () use ($group, $days) {
-            // If group doesn't exist
-            if(Arr::has(config('job-central.groups'), $group) === false) {
-                return;
-            }
+        $fromDate = Carbon::today()->subDays($days);
+        $enabledJobs = $this->getJobsInGroup($group)->toArray();
 
-            $fromDate = Carbon::today()->subDays($days);
-            $enabledJobs = $this->getJobsInGroup($group)->toArray();
+        $jcJobsExceptions = JCJob::whereDate('finished_or_failed_at', '>=', $fromDate)
+            ->whereIn('job_class', $enabledJobs)
+            ->whereNotNull('exception')->get();
 
-            $jcJobsExceptions = JCJob::whereDate('finished_or_failed_at', '>=', $fromDate)
-                ->whereIn('job_class', $enabledJobs)
-                ->whereNotNull('exception')->get();
+        $jcJobsExceptionGroups = $jcJobsExceptions->groupBy(function($jcJob) {
+            return $jcJob->exception;
+        })->map(function($exceptionGroup) {
+            return $exceptionGroup->sortByDesc('finished_or_failed_at');
+        })->sortByDesc(function($exceptionGroup) {
+            return $exceptionGroup->first()->finished_or_failed_at;
+        });
 
-            $jcJobsExceptionGroups = $jcJobsExceptions->groupBy(function($jcJob) {
-                return $jcJob->exception;
-            })->map(function($exceptionGroup) {
-                return $exceptionGroup->sortByDesc('finished_or_failed_at');
-            })->sortByDesc(function($exceptionGroup) {
-                return $exceptionGroup->first()->finished_or_failed_at;
-            });
+        $exceptions = $jcJobsExceptionGroups->map(function($jcJobGroup, $exception) {
+            return [
+                'title' => $exception,
+                'subtitle' => $jcJobGroup->count() . 'x - Last seen: ' . Carbon::parse($jcJobGroup->first()->finished_or_failed_at)->format('d-m-Y h:i:s')
+            ];
+        })->toArray();
 
-            $exceptions = $jcJobsExceptionGroups->map(function($jcJobGroup, $exception) {
-                return [
-                    'title' => $exception,
-                    'subtitle' => $jcJobGroup->count() . 'x - Last seen: ' . Carbon::parse($jcJobGroup->first()->finished_or_failed_at)->format('d-m-Y h:i:s')
-                ];
-            })->toArray();
+        $payload = $this->makeList($exceptions);
 
-            $payload = $this->makeList($exceptions);
-
-            return response()->json($payload);
-
-            return [];
-//        }, [], function ($results) use ($group) {
-//            return $this->makeGroupCacheTags($group);
-//        });
+        return response()->json($payload);
     }
 
     /**
@@ -305,29 +308,23 @@ class ApiController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
     public function jobRuns($jobClass, $days) {
-//        $key = "job-central-job-runs-$jobClass-$days";
+        $labels = [];
+        $series = [[]];
 
-//        return $this->cacheRepository->remember($key, function () use ($jobClass, $days) {
-            $labels = [];
-            $series = [[]];
+        for($i = 0; $i < $days; $i++) {
+            $targetDate = Carbon::today()->subDays($days - $i - 1);
 
-            for($i = 0; $i < $days; $i++) {
-                $targetDate = Carbon::today()->subDays($days - $i - 1);
+            array_push($labels, $targetDate->format('d-m'));
 
-                array_push($labels, $targetDate->format('d-m'));
+            $jobRunCount = JCJob::where('job_class', '=', $jobClass)
+                ->whereDate('finished_or_failed_at', $targetDate)->count();
 
-                $jobRunCount = JCJob::where('job_class', '=', $jobClass)
-                    ->whereDate('finished_or_failed_at', $targetDate)->count();
+            array_push($series[0], $jobRunCount);
+        }
 
-                array_push($series[0], $jobRunCount);
-            }
+        $payload = $this->makeLineChart($labels, $series);
 
-            $payload = $this->makeLineChart($labels, $series);
-
-            return response()->json($payload);
-//        }, [], function ($results) use ($jobClass) {
-//            return $this->makeJobCacheTags($jobClass);
-//        });
+        return response()->json($payload);
     }
 
     /**
@@ -337,35 +334,29 @@ class ApiController extends Controller
      * @throws \Illuminate\Contracts\Container\BindingResolutionException
      */
     public function jobRunsResults($jobClass, $days) {
-//        $key = "job-central-job-results-$jobClass-$days";
+        $categories = [];
+        $series = [[],[]];
 
-//        return $this->cacheRepository->remember($key, function () use ($jobClass, $days) {
-            $categories = [];
-            $series = [[],[]];
+        for($i = 0; $i < $days; $i++) {
+            $targetDate = Carbon::today()->subDays($days - $i -1);
 
-            for($i = 0; $i < $days; $i++) {
-                $targetDate = Carbon::today()->subDays($days - $i -1);
+            $categories[] = $targetDate->format('d-m');
 
-                $categories[] = $targetDate->format('d-m');
+            $failedRuns = JCJob::whereDate('finished_or_failed_at', $targetDate)
+                ->where('job_class', $jobClass)
+                ->where('status', JCJob::FAILED)
+                ->count();
+            $successfulRuns = JCJob::whereDate('finished_or_failed_at', $targetDate)
+                ->where('job_class', $jobClass)
+                ->where('status', JCJob::SUCCEEDED)
+                ->count();
 
-                $failedRuns = JCJob::whereDate('finished_or_failed_at', $targetDate)
-                    ->where('job_class', $jobClass)
-                    ->where('status', JCJob::FAILED)
-                    ->count();
-                $successfulRuns = JCJob::whereDate('finished_or_failed_at', $targetDate)
-                    ->where('job_class', $jobClass)
-                    ->where('status', JCJob::SUCCEEDED)
-                    ->count();
+            $series[0][] = $failedRuns;
+            $series[1][] = $successfulRuns;
+        }
 
-                $series[0][] = $failedRuns;
-                $series[1][] = $successfulRuns;
-            }
+        $payload = $this->makeColumnChart($categories, $series);
 
-            $payload = $this->makeColumnChart($categories, $series);
-
-            return response()->make($payload);
-//        }, [], function ($results) use ($jobClass) {
-//            return $this->makeJobCacheTags($jobClass);
-//        });
+        return response()->make($payload);
     }
 }

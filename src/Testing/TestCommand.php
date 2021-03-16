@@ -3,6 +3,7 @@
 namespace Daalder\JobCentral\Testing;
 
 use Daalder\JobCentral\Testing\TestingJob;
+use Daalder\JobCentral\Testing\TestingJobThatFails;
 use Illuminate\Console\Command;
 
 class TestCommand extends Command
