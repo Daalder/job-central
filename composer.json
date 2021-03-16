@@ -1,5 +1,5 @@
 {
-    "name": "pionect/job-central",
+    "name": "daalder/job-central",
     "description": "A package for gathering Schedule-related information to display on a third-party solution.",
     "type": "library",
     "license": "closed source",
