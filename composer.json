@@ -13,7 +13,13 @@
         }
     ],
     "require": {
+        "php": "^8.0",
+        "ext-zip": "*",
         "pionect/daalder": "^8.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^6.0",
+        "phpunit/phpunit": "^9.3"
     },
     "autoload": {
         "classmap": [
