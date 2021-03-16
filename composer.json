@@ -1,0 +1,33 @@
+{
+    "name": "pionect/job-central",
+    "description": "A package for gathering Schedule-related information to display on a third-party solution.",
+    "type": "library",
+    "license": "closed source",
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://repo.packagist.com/pionect/"
+        },
+        {
+            "packagist.org": false
+        }
+    ],
+    "require": {
+        "pionect/daalder": "^8.0"
+    },
+    "autoload": {
+        "classmap": [
+            "database"
+        ],
+        "psr-4": {
+            "Daalder\\JobCentral\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+              "Daalder\\JobCentral\\JobCentralServiceProvider"
+            ]
+        }
+    }
+}
