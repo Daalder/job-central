@@ -27,30 +27,10 @@ jobs:
                 uses: rlespinasse/git-commit-data-action@1.1.0
 
             -   name: Set env
-                run: echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
-            -   name: Test
-                run: echo $GITHUB_SHA_SHORT
-
-            -   name: Print some git data
-                run: |
-                    echo "1: $(echo $GIT_COMMIT_AUTHOR_NAME | head -n1 | cut -d ' ' -f1)"
-                    echo "AUTHOR_FIRST_NAME=$(echo $GIT_COMMIT_AUTHOR_NAME | head -n1 | cut -d ' ' -f1)"
-                    echo "AUTHOR_FIRST_NAME=$(echo $GIT_COMMIT_AUTHOR_NAME | head -n1 | cut -d ' ' -f1)" >> $GITHUB_ENV
-                    echo "Get author info"
-                    echo " - ${{ env.GIT_COMMIT_AUTHOR }}"
-                    echo " - ${{ env.GIT_COMMIT_AUTHOR_NAME }}"
-                    echo " - ${{ env.GIT_COMMIT_AUTHOR_EMAIL }}"
-                    echo "Get committer info"
-                    echo " - ${{ env.GIT_COMMIT_COMMITTER }}"
-                    echo " - ${{ env.GIT_COMMIT_COMMITTER_NAME }}"
-                    echo " - ${{ env.GIT_COMMIT_COMMITTER_EMAIL }}"
-                    echo "Get message info"
-                    echo " - ${{ env.GIT_COMMIT_MESSAGE_SUBJECT }}"
-                    echo " - ${{ env.GIT_COMMIT_MESSAGE_SUBJECT_SANITIZED }}"
-                    echo " - ${{ env.GIT_COMMIT_MESSAGE_BODY }}"
+                run: echo "AUTHOR_FIRSTNAME=$(echo $GIT_COMMIT_AUTHOR_NAME | head -n1 | cut -d ' ' -f1)" >> $GITHUB_ENV
 
             -   name: Test
-                run: echo $AUTHOR_FIRST_NAME
+                run: echo $AUTHOR_FIRSTNAME
 
             -   name: Set up MySQL
                 run: |
