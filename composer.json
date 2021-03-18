@@ -29,6 +29,11 @@
         ],
         "psr-4": {
             "Daalder\\JobCentral\\": "src/"
+        },
+        "autoload-dev": {
+            "psr-4": {
+                "Daalder\\JobCentral\\Tests\\": "tests/"
+            }
         }
     },
     "extra": {

@@ -1,10 +1,10 @@
 <?php
 
-namespace Daalder\SkeletonPackage\Tests;
+namespace Daalder\JobCentral\Tests;
 
 /**
  * Class ExampleTest
- * @package Daalder\SkeletonPackage\Tests
+ * @package Daalder\JobCentral\Tests
  */
 class ExampleTest extends TestCase
 {

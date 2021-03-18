@@ -1,5 +1,5 @@
 <?php
-namespace Daalder\SkeletonPackage\Tests;
+namespace Daalder\JobCentral\Tests;
 
 abstract class TestCase extends \Orchestra\Testbench\TestCase
 {
