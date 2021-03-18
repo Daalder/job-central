@@ -47,8 +47,6 @@ class JobCentralServiceProvider extends ServiceProvider
     private function updateJCJobStatus($id, $status) {
         $jcJob = $this->getJCJobFromJobId($id);
         if($jcJob) {
-//            $this->cacheRepository->clear('job-central-job', [ $jcJob->job_class ], null);
-
             $jcJob->status = $status;
             $jcJob->finished_or_failed_at = now();
             $jcJob->save();
@@ -58,8 +56,6 @@ class JobCentralServiceProvider extends ServiceProvider
     private function saveJobException($id, $exception) {
         $jcJob = $this->getJCJobFromJobId($id);
         if($jcJob) {
-//            $this->cacheRepository->clear('job-central-job', [ $jcJob->job_class ], null);
-
             $jcJob->exception = $exception->getMessage();
             $jcJob->save();
         }
@@ -79,8 +75,6 @@ class JobCentralServiceProvider extends ServiceProvider
                     'status' => JCJob::RUNNING,
                 ])->save();
             }
-
-//            $this->cacheRepository->clear('job-central-job', [ $jobClass ], null);
         }
     }
 
@@ -90,8 +84,6 @@ class JobCentralServiceProvider extends ServiceProvider
         // If JCJob is found and doesn't have failed status.
         // Jobs with failed status have permanently failed and need to be kept for logging
         if($jcJob && $jcJob->status !== JCJob::FAILED) {
-//            $this->cacheRepository->clear('job-central-job', [ $jcJob->job_class ], null);
-
             $jcJob->forceDelete();
         }
     }
