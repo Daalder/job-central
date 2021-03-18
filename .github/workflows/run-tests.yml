@@ -26,6 +26,11 @@ jobs:
             -   name: Get git commit data
                 uses: rlespinasse/git-commit-data-action@1.1.0
 
+            -   name: Set env
+                run: echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
+            -   name: Test
+                run: echo $GITHUB_SHA_SHORT
+
             -   name: Print some git data
                 run: |
                     echo "AUTHOR_FIRSTNAME=$(echo ${{ env.GIT_COMMIT_AUTHOR_NAME }} | head -n1 | cut -d " " -f1)" >> $GITHUB_ENV
