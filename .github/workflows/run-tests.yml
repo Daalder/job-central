@@ -48,3 +48,14 @@ jobs:
 
             -   name: Execute tests
                 run: vendor/bin/phpunit
+
+            - uses: 8398a7/action-slack@v3
+              with:
+                  status: ${{ job.status }}
+                  author_name: Bot the Builder
+                  fields: repo,commit
+                  mention: author
+                  if_mention: failure,cancelled
+              env:
+                  SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+              if: always() # Pick up events even if the job fails or is canceled.
