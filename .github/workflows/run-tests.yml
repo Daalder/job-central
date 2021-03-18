@@ -35,7 +35,7 @@ jobs:
                 run: |
                     echo "1: $(echo ${{ env.GIT_COMMIT_AUTHOR_NAME }})"
                     echo "2: $(echo env.GIT_COMMIT_AUTHOR_NAME)"
-                    echo "3: $(echo $GIT_COMMIT_AUTHOR_NAME)"
+                    echo "3: $(echo $GIT_COMMIT_AUTHOR_NAME | head -n1 | cut -d ' ' -f1)"
                     echo "AUTHOR_FIRSTNAME=$(echo ${{ env.GIT_COMMIT_AUTHOR_NAME }} | head -n1 | cut -d ' ' -f1)" >> $GITHUB_ENV
                     echo "env.AUTHOR_FIRSTNAME: ${{ env.AUTHOR_FIRSTNAME }}"
                     echo "${{ env.GIT_COMMIT_AUTHOR_NAME }}" | head -n1 | cut -d " " -f1
