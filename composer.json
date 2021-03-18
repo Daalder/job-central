@@ -3,6 +3,8 @@
     "description": "A package for gathering Schedule-related information to display on a third-party solution.",
     "type": "library",
     "license": "closed source",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
     "repositories": [
         {
             "type": "composer",
