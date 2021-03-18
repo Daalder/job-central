@@ -65,7 +65,7 @@ jobs:
                     echo "$( echo \"${{ job.status }}\" )"
                     echo job.status
                     curl -X POST -H "Authorization: Bearer $BEARER_TOKEN" "$BASE_URL?channel=$CHANNEL&link_names=true&pretty=1" \
-                        --data-urlencode "text=$(if [ \"${{ job.status }}\" == \"failure\" ]; then echo ':no_entry: Job-Central tests failed'; else echo \":white_check_mark: Job-Central tests succeeded\"; fi) for $(echo '`')$(echo $GIT_BRANCH)$(echo '`') @ $(echo '`')<$(echo https://github.com/Daalder/job-central/commit/$GITHUB_SHA)|$GIT_SHORT_HASH>$(echo '`') by @$AUTHOR_FIRSTNAME"
+                        --data-urlencode "text=$(if [ \"${{ job.status }}\" == \"failure\" ]; then echo ':no_entry: Job-Central tests failed'; else echo ':white_check_mark: Job-Central tests succeeded'; fi) for $(echo '`')$(echo $GIT_BRANCH)$(echo '`') @ $(echo '`')<$(echo https://github.com/Daalder/job-central/commit/$GITHUB_SHA)|$GIT_SHORT_HASH>$(echo '`') by @$AUTHOR_FIRSTNAME"
                 env:
                     BEARER_TOKEN: ${{ secrets.SLACK_BEARER_TOKEN }}
                     BASE_URL: https://slack.com/api/chat.postMessage
