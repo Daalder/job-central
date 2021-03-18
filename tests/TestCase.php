@@ -88,6 +88,7 @@ class TestCase extends DaalderTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->loadMigrationsFrom(__DIR__ . '/../migrations');
+
+        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
     }
 }

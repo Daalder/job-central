@@ -7,14 +7,14 @@ class ChangeExceptionField extends Migration
 {
     public function up()
     {
-        Schema::table('jc_jobs', function (Blueprint $table) {
+        Schema::table('job_central', function (Blueprint $table) {
             $table->longText('exception')->change();
         });
     }
 
     public function down()
     {
-        Schema::table('jc_jobs', function (Blueprint $table) {
+        Schema::table('job_central', function (Blueprint $table) {
             $table->string('exception')->change();
         });
     }
