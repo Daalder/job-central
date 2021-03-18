@@ -61,7 +61,11 @@ jobs:
                     status: ${{ job.status }}
                     author_name: ${{ env.GIT_COMMIT_AUTHOR_NAME }}
                     fields: repo,commit,message
-                    mention: @everyone
+                    custom_payload: |
+                        {
+                          link_names: true
+                        }
+                    mention: ${{ env.AUTHOR_FIRSTNAME }}
                     if_mention: failure,cancelled
                 env:
                     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
