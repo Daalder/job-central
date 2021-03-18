@@ -7,11 +7,13 @@ class RenameJcJobsTable extends Migration
 {
     public function up()
     {
-        Schema::rename('jc_jobs', 'job_central');
+        if(Schema::hasTable('jc_jobs')) {
+            Schema::rename('jc_jobs', 'job_central');
+        }
     }
 
     public function down()
     {
-        Schema::rename('job_central', 'jc_jobs');
+        // This change shouldn't be revertable
     }
 }

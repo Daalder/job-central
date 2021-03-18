@@ -7,7 +7,7 @@ class CreateJcJobsTable extends Migration {
 
 	public function up()
 	{
-		Schema::create('jc_jobs', function(Blueprint $table) {
+		Schema::create('job_central', function(Blueprint $table) {
 			$table->increments('id');
             $table->string('job_id', 255)->index();
 			$table->string('job_class', 255);
@@ -21,6 +21,12 @@ class CreateJcJobsTable extends Migration {
 
 	public function down()
 	{
-		Schema::drop('jc_jobs');
+        if(Schema::hasTable('jc_jobs')) {
+            Schema::drop('jc_jobs');
+        }
+
+        if(Schema::hasTable('job_central')) {
+            Schema::drop('job_central');
+        }
 	}
 }
