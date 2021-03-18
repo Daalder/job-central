@@ -64,7 +64,7 @@ jobs:
                     echo "$GITHUB_HEAD_REF"
                     echo "@$AUTHOR_FIRSTNAME"
                     curl -X POST -H "Authorization: Bearer $BEARER_TOKEN" "$BASE_URL?channel=$CHANNEL&link_names=true&pretty=1" \
-                        --data-urlencode "text=:no_entry: Job-Central tests failed following commit <$(echo 'https://github.com/Daalder/job-central/commit/$GITHUB_SHA')|GIT_SHORT_HASH>"
+                        --data-urlencode "text=:no_entry: Job-Central tests failed following commit <$(echo https://github.com/Daalder/job-central/commit/$GITHUB_SHA)|$GIT_SHORT_HASH>"
                 env:
                     BEARER_TOKEN: ${{ secrets.SLACK_BEARER_TOKEN }}
                     BASE_URL: https://slack.com/api/chat.postMessage
