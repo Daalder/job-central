@@ -26,8 +26,8 @@ jobs:
             -   name: Get git commit data
                 uses: rlespinasse/git-commit-data-action@1.1.0
 
-#            -   name: Get first name of committer
-#                run: echo "AUTHOR_FIRSTNAME=$(echo $GIT_COMMIT_AUTHOR_NAME | head -n1 | cut -d ' ' -f1)" >> $GITHUB_ENV
+            -   name: Get first name of committer
+                run: echo "AUTHOR_FIRSTNAME=$(echo $GIT_COMMIT_AUTHOR_NAME | head -n1 | cut -d ' ' -f1)" >> $GITHUB_ENV
 
             -   name: Set up MySQL
                 run: |
