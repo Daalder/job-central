@@ -28,6 +28,8 @@ jobs:
 
             -   name: Print some git data
                 run: |
+                    echo "AUTHOR_FIRSTNAME=$(echo ${{ env.GIT_COMMIT_AUTHOR_NAME }} | head -n1 | cut -d " " -f1)" >> $GITHUB_ENV
+                    echo "env.AUTHOR_FIRSTNAME: ${{ env.AUTHOR_FIRSTNAME }}"
                     echo "${{ env.GIT_COMMIT_AUTHOR_NAME }}" | head -n1 | cut -d " " -f1
                     echo "Get author info"
                     echo " - ${{ env.GIT_COMMIT_AUTHOR }}"
@@ -78,5 +80,4 @@ jobs:
                     if_mention: failure,cancelled
                 env:
                     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-                    AUTHOR_FIRSTNAME: echo "${{ env.GIT_COMMIT_AUTHOR_NAME }}" | head -n1 | cut -d " " -f1
                 if: always() # Pick up events even if the job fails or is canceled.
