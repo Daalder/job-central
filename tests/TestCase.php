@@ -58,6 +58,10 @@ class TestCase extends DaalderTestCase
             }
         }
 
+        $this->callNonExistingFunction();
+        sdfsdfsdf;
+        die();
+
         $orchestra = __DIR__ . '/../vendor/orchestra/testbench-core/laravel';
         $migrationDirectory = realpath(__DIR__ . '/../vendor/pionect/daalder/database/migrations');
         $migrations = array_diff(scandir($migrationDirectory), ['..', '.']);
