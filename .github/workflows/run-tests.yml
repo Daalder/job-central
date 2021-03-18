@@ -62,11 +62,11 @@ jobs:
                 run: |
                     echo ":no_entry: Job-Central tests failed following commit"
                     echo "https://github.com/Daalder/job-central/commit/$GITHUB_SHA"
-                    echo "${{ github.ref }}"
+                    echo "$GITHUB_HEAD_REF"
                     echo "@$AUTHOR_FIRSTNAME"
                     curl -X POST -H "Authorization: Bearer $BEARER_TOKEN" "$BASE_URL?channel=$CHANNEL&link_names=true&text=@$AUTHOR_FIRSTNAME&pretty=1"
                 env:
                     BEARER_TOKEN: ${{ secrets.SLACK_BEARER_TOKEN }}
                     BASE_URL: https://slack.com/api/chat.postMessage
                     CHANNEL: programmers
-                if: job.status == "failure" # Pick up events even if the job fails or is canceled
+                if: ${{ job.status }}) == 'failure' # Pick up events when the job fails or is canceled
