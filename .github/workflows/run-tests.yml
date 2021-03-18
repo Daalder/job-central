@@ -66,6 +66,7 @@ jobs:
                     echo "@$AUTHOR_FIRSTNAME"
                     echo "$BASE_URL?channel=$CHANNEL&link_names=true&text=@$AUTHOR_FIRSTNAME&pretty=1"
                     curl -X POST -H "Authorization: Bearer $BEARER_TOKEN" "$BASE_URL?channel=$CHANNEL&link_names=true&text=%40$AUTHOR_FIRSTNAME&pretty=1"
+                    curl -X POST -H "Authorization: Bearer $BEARER_TOKEN" "https://slack.com/api/chat.postMessage?channel=programmers&link_names=true&text=$TEXT&pretty=1"
                 env:
                     BEARER_TOKEN: ${{ secrets.SLACK_BEARER_TOKEN }}
                     BASE_URL: https://slack.com/api/chat.postMessage
