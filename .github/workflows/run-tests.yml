@@ -26,6 +26,21 @@ jobs:
             -   name: Get git commit data
                 uses: rlespinasse/git-commit-data-action@1.1.0
 
+            -   name: Print some git data
+                run: |
+                    echo "Get author info"
+                    echo " - ${{ env.GIT_COMMIT_AUTHOR }}"
+                    echo " - ${{ env.GIT_COMMIT_AUTHOR_NAME }}"
+                    echo " - ${{ env.GIT_COMMIT_AUTHOR_EMAIL }}"
+                    echo "Get committer info"
+                    echo " - ${{ env.GIT_COMMIT_COMMITTER }}"
+                    echo " - ${{ env.GIT_COMMIT_COMMITTER_NAME }}"
+                    echo " - ${{ env.GIT_COMMIT_COMMITTER_EMAIL }}"
+                    echo "Get message info"
+                    echo " - ${{ env.GIT_COMMIT_MESSAGE_SUBJECT }}"
+                    echo " - ${{ env.GIT_COMMIT_MESSAGE_SUBJECT_SANITIZED }}"
+                    echo " - ${{ env.GIT_COMMIT_MESSAGE_BODY }}"
+
             -   name: Set up MySQL
                 run: |
                     sudo /etc/init.d/mysql start
