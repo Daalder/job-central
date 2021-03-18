@@ -69,4 +69,4 @@ jobs:
                     BEARER_TOKEN: ${{ secrets.SLACK_BEARER_TOKEN }}
                     BASE_URL: https://slack.com/api/chat.postMessage
                     CHANNEL: programmers
-                if: job.status === "failure" # Pick up events even if the job fails or is canceled
+                if: job.status == "failure" # Pick up events even if the job fails or is canceled
