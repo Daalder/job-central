@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class JCJob extends Model
 {
-    protected $table = 'jc_jobs';
+    protected $table = 'job_central';
 
     protected $dates = ['finished_or_failed_at'];
 

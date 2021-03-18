@@ -182,12 +182,14 @@ class ApiController extends Controller
         $labels = $series = $seriesNames = [];
 
         if($days <= 3) {
-            for($i = 0; $i < $days * 24; $i += $days) {
+            // Create label for each hour
+            for($i = 0; $i < $days * 24; $i += 1) {
                 $targetDate = now()->minute(0)->second(0)->subHour($i);
                 array_push($labels, $targetDate->format('H:00'));
             }
             $labels = array_reverse($labels);
         } else {
+            // Create label for each day
             for($i = 0; $i < $days; $i++) {
                 $targetDate = Carbon::today()->subDays($days - $i - 1);
                 array_push($labels, $targetDate->format('d-m'));
@@ -198,9 +200,10 @@ class ApiController extends Controller
             $serie = [];
 
             if($days <= 3) {
-                for($i = 0; $i < $days * 24; $i += $days) {
+                // Prepare job data per hour
+                for($i = 0; $i < $days * 24; $i += 1) {
                     $startDate = now()->minute(0)->second(0)->subHour($i);
-                    $endDate = now()->minute(0)->second(0)->subHour($i)->addHours($days);
+                    $endDate = now()->minute(0)->second(0)->subHour($i)->addHours(1);
 
                     $runs = JCJob::whereBetween('finished_or_failed_at', [$startDate, $endDate])
                         ->where('job_class', $jobClass)->count();
@@ -208,6 +211,7 @@ class ApiController extends Controller
                 }
                 $serie = array_reverse($serie);
             } else {
+                // Prepare job data per day
                 for($i = 0; $i < $days; $i++) {
                     $targetDate = Carbon::today()->subDays($days - $i - 1);
                     $runs = JCJob::whereDate('finished_or_failed_at', $targetDate)->where('job_class', $jobClass)->count();
