@@ -33,7 +33,7 @@ jobs:
 
             -   name: Print some git data
                 run: |
-                    echo "AUTHOR_FIRSTNAME=$(echo ${{ env.GIT_COMMIT_AUTHOR_NAME }} | head -n1 | cut -d " " -f1)" >> $GITHUB_ENV
+                    echo "AUTHOR_FIRSTNAME=$(echo ${{ env.GIT_COMMIT_AUTHOR_NAME }} | head -n1 | cut -d ' ' -f1)" >> $GITHUB_ENV
                     echo "env.AUTHOR_FIRSTNAME: ${{ env.AUTHOR_FIRSTNAME }}"
                     echo "${{ env.GIT_COMMIT_AUTHOR_NAME }}" | head -n1 | cut -d " " -f1
                     echo "Get author info"
