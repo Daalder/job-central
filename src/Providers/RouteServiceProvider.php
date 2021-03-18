@@ -24,9 +24,7 @@ class RouteServiceProvider extends ServiceProvider
 
     public function map()
     {
-        $middleware = hook('api-unauthenticated-middleware', ['api', 'api_log_request']);
-
-        Route::middleware($middleware)
+        Route::middleware('api')
             ->namespace($this->namespace)
             ->prefix('job-central')
             ->group(__DIR__.'/../../routes/api.php');

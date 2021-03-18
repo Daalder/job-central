@@ -1,6 +1,6 @@
 {
     "name": "daalder/job-central",
-    "description": "A package for gathering Schedule-related information to display on a third-party solution.",
+    "description": "A package for gathering Laravel job-related data for displaying on Geckoboard",
     "type": "library",
     "license": "closed source",
     "minimum-stability": "dev",
