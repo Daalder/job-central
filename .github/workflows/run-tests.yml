@@ -72,9 +72,9 @@ jobs:
                 uses: 8398a7/action-slack@v3
                 with:
                     status: ${{ job.status }}
-                    author_name: "${{ env.GIT_COMMIT_AUTHOR_NAME }}"
+                    author_name: ${{ env.GIT_COMMIT_AUTHOR_NAME }}
                     fields: repo,commit,message
-                    mention: "${{ AUTHOR_FIRSTNAME }}"
+                    mention: ${{ env.AUTHOR_FIRSTNAME }}
                     if_mention: failure,cancelled
                 env:
                     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
