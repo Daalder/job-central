@@ -28,6 +28,7 @@ jobs:
 
             -   name: Print some git data
                 run: |
+                    echo "${{ env.GIT_COMMIT_AUTHOR_NAME }}" | head -n1 | cut -d " " -f1
                     echo "Get author info"
                     echo " - ${{ env.GIT_COMMIT_AUTHOR }}"
                     echo " - ${{ env.GIT_COMMIT_AUTHOR_NAME }}"
