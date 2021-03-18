@@ -74,8 +74,9 @@ jobs:
                     status: ${{ job.status }}
                     author_name: "${{ env.GIT_COMMIT_AUTHOR_NAME }}"
                     fields: repo,commit,message
-                    mention: "${{ env.GIT_COMMIT_AUTHOR_NAME }}"
+                    mention: "${{ AUTHOR_FIRSTNAME }}"
                     if_mention: failure,cancelled
                 env:
                     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+                    AUTHOR_FIRSTNAME: echo "${{ env.GIT_COMMIT_AUTHOR_NAME }}" | head -n1 | cut -d " " -f1
                 if: always() # Pick up events even if the job fails or is canceled.
