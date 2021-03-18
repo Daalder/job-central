@@ -26,11 +26,8 @@ jobs:
             -   name: Get git commit data
                 uses: rlespinasse/git-commit-data-action@1.1.0
 
-            -   name: Set env
-                run: echo "AUTHOR_FIRSTNAME=$(echo $GIT_COMMIT_AUTHOR_NAME | head -n1 | cut -d ' ' -f1)" >> $GITHUB_ENV
-
-            -   name: Test
-                run: echo $AUTHOR_FIRSTNAME
+#            -   name: Get first name of committer
+#                run: echo "AUTHOR_FIRSTNAME=$(echo $GIT_COMMIT_AUTHOR_NAME | head -n1 | cut -d ' ' -f1)" >> $GITHUB_ENV
 
             -   name: Set up MySQL
                 run: |
@@ -64,7 +61,7 @@ jobs:
                     status: ${{ job.status }}
                     author_name: ${{ env.GIT_COMMIT_AUTHOR_NAME }}
                     fields: repo,commit,message
-                    mention: ${{ env.AUTHOR_FIRSTNAME }}
+                    mention: @everyone
                     if_mention: failure,cancelled
                 env:
                     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
