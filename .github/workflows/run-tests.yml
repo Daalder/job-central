@@ -20,6 +20,9 @@ jobs:
 
         name: P${{ matrix.php }} - L${{ matrix.laravel }} - ${{ matrix.dependency-version }}
         steps:
+            - name: Get git commit data
+              uses: rlespinasse/git-commit-data-action@1.1.0
+
             - name: Set up MySQL
               run: |
                   sudo /etc/init.d/mysql start
@@ -49,16 +52,13 @@ jobs:
             -   name: Execute tests
                 run: vendor/bin/phpunit
 
-            -   name: Get git commit data
-                uses: rlespinasse/git-commit-data-action@1.1.0
-
             -   name: Post status to Slack
                 uses: 8398a7/action-slack@v3
                 with:
                     status: ${{ job.status }}
                     author_name: ${{ env.GIT_COMMIT_AUTHOR_NAME }}
                     fields: repo,commit,message
-                    mention: author
+                    mention: ${{ env.GIT_COMMIT_AUTHOR_NAME }}
                     if_mention: failure,cancelled
                 env:
                     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
