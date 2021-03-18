@@ -23,11 +23,14 @@ jobs:
             -   name: Checkout code
                 uses: actions/checkout@v2
 
-            -   name: Get git commit data
+            -   name: Get git commit data 1
                 uses: rlespinasse/git-commit-data-action@1.1.0
 
-            -   name: Get first name of committer
-                run: echo "AUTHOR_FIRSTNAME=$(echo $GIT_COMMIT_AUTHOR_NAME | head -n1 | cut -d ' ' -f1)" >> $GITHUB_ENV
+            -   name: Get git commit data 2
+                run: |
+                    echo "AUTHOR_FIRSTNAME=$(echo $GIT_COMMIT_AUTHOR_NAME | head -n1 | cut -d ' ' -f1)" >> $GITHUB_ENV
+#                    echo "GIT_SHORT_HASH=$(git rev-parse --short $GITHUB_SHA)" >> $GITHUB_ENV
+#                    echo "GIT_BRANCH=$(echo ${GITHUB_REF#refs/heads/})" >> $GITHUB_ENV
 
             -   name: Set up MySQL
                 run: |
@@ -55,18 +58,15 @@ jobs:
             -   name: Execute tests
                 run: vendor/bin/phpunit
 
-            -   name: Post status to Slack
-                uses: 8398a7/action-slack@v3
-                with:
-                    status: ${{ job.status }}
-                    author_name: ${{ env.GIT_COMMIT_AUTHOR_NAME }}
-                    fields: repo,commit,message
-                    custom_payload: |
-                        {
-                          link_names: true
-                        }
-                    mention: ${{ env.AUTHOR_FIRSTNAME }}
-                    if_mention: failure,cancelled
+            -   name: Post failure status to Slack
+                run: |
+                    echo ":no_entry: Job-Central tests failed following commit"
+                    echo "https://github.com/Daalder/job-central/commit/$GITHUB_SHA"
+                    echo "${{ github.ref }}"
+                    echo "@$AUTHOR_FIRSTNAME"
+                    curl -X POST -H "Authorization: Bearer $BEARER_TOKEN" "$BASE_URL?channel=$CHANNEL&link_names=true&text=@$AUTHOR_FIRSTNAME&pretty=1"
                 env:
-                    SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-                if: always() # Pick up events even if the job fails or is canceled
+                    BEARER_TOKEN: ${{ secrets.SLACK_BEARER_TOKEN }}
+                    BASE_URL: https://slack.com/api/chat.postMessage
+                    CHANNEL: programmers
+                if: job.status === "failure" # Pick up events even if the job fails or is canceled
