@@ -1,8 +1,10 @@
 {
     "name": "daalder/job-central",
-    "description": "A package for gathering Schedule-related information to display on a third-party solution.",
+    "description": "A package for gathering Laravel job-related data for displaying on Geckoboard",
     "type": "library",
     "license": "closed source",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
     "repositories": [
         {
             "type": "composer",
@@ -13,7 +15,13 @@
         }
     ],
     "require": {
+        "php": "^7.3|^8.0",
+        "ext-zip": "*",
         "pionect/daalder": "^8.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^6.0",
+        "phpunit/phpunit": "^9.3"
     },
     "autoload": {
         "classmap": [
@@ -21,6 +29,11 @@
         ],
         "psr-4": {
             "Daalder\\JobCentral\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Daalder\\JobCentral\\Tests\\": "tests/"
         }
     },
     "extra": {
