@@ -38,6 +38,6 @@ class TestCommand extends Command
     public function handle()
     {
         TestingJob::dispatch();
-        TestingJobThatFails::dispatch();
+//        TestingJobThatFails::dispatch();
     }
 }
