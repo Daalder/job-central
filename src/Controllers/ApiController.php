@@ -2,14 +2,12 @@
 
 namespace Daalder\JobCentral\Controllers;
 
-use App\Http\Controllers\Controller;
+use Pionect\Daalder\Http\Controllers\Api\Controller;
 use Carbon\Carbon;
+use Daalder\JobCentral\Repositories\JCJobRepository;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
-use Daalder\JobCentral\Models\JCCommand;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Queue;
 use Daalder\JobCentral\Models\JCJob;
 use Pionect\Daalder\Services\Cache\CacheRepository;
 
@@ -19,151 +17,14 @@ class ApiController extends Controller
      * @var CacheRepository
      */
     private $cacheRepository;
+    private $jcJobRepository;
 
     /**
      * ApiController constructor.
-     * @param  CacheRepository  $cacheRepository
      */
     public function __construct() {
         $this->cacheRepository = resolve(CacheRepository::class);
-    }
-
-    /**
-     * @param  array  $labels
-     * @param  array  $series
-     * @param  array  $seriesLabels
-     * @return array
-     */
-    private function makeLineChart(array $labels, array $series, array $seriesLabels = []) {
-        $payload = [
-            "x_axis" => [
-                "labels" => []
-            ],
-            "series" => []
-        ];
-
-        foreach($labels as $index => $label) {
-            $payload["x_axis"]["labels"][] = $label;
-        }
-
-        foreach($series as $seriesIndex => $serie) {
-            $payload["series"][$seriesIndex] = ["data" => []];
-
-            foreach($serie as $value)  {
-                $payload["series"][$seriesIndex]["data"][] = $value;
-            }
-        }
-
-        foreach($seriesLabels as $seriesIndex => $seriesLabel) {
-            $payload["series"][$seriesIndex]["name"] = $seriesLabel;
-        }
-
-        return $payload;
-    }
-
-    /**
-     * @param $categories
-     * @param $series
-     * @param  string  $title
-     * @return array
-     */
-    private function makeColumnChart($categories, $series, $title = '') {
-        $payload = [
-            'chart' => [
-                'type' => 'column',
-                'renderTo' => "container"
-            ],
-            'title' => [
-                'text' => $title,
-            ],
-            'xAxis' => [
-                'categories' => [],
-            ],
-            'yAxis' => [
-                'min' => 0,
-                'title' => [
-                    'text' => 'Amount',
-                ],
-            ],
-            'plotOptions' => [
-                'column' => [
-                    'pointPadding' => 0.2,
-                    'borderWidth' => 0,
-                ],
-            ],
-            'series' => [
-                [
-                    'name' => 'Failed',
-                    'data' => [],
-                ],
-                [
-                    'name' => 'Succeeded',
-                    'data' => [],
-                ],
-            ],
-        ];
-
-        foreach($categories as $category) {
-            $payload['xAxis']['categories'][] = $category;
-        }
-
-        foreach($series as $index => $serie) {
-            foreach($serie as $value) {
-                $payload["series"][$index]["data"][] = $value;
-            }
-        }
-
-        return [
-            "highchart" => json_encode($payload)
-        ];
-    }
-
-    /**
-     * @param $items
-     * @return array
-     */
-    private function makeList($items) {
-        $payload = [];
-
-        foreach($items as $item) {
-            $payload[] = [
-                'title' => [
-                    'text' => Str::limit($item['title'], 100)
-                ],
-                'description' => $item['subtitle']
-            ];
-        }
-
-        return $payload;
-    }
-
-    public function getJobsInGroup($group) {
-        if($group === '*') {
-            $enabledJobs = collect(config('job-central.groups'))->flatten();
-        } else {
-            $enabledJobs = collect(config('job-central.groups.' . $group));
-        }
-
-        return $enabledJobs->map(function($jobClass) {
-            return Arr::last(explode('\\', $jobClass));
-        });
-    }
-
-    public function makeJobCacheTags($jobClassNames) {
-        if(($jobClassNames instanceof Collection) === false) {
-            $jobClassNames = collect($jobClassNames);
-        }
-
-        return $this->cacheRepository->makeTags("job-central-job", $jobClassNames->toArray(), null);
-    }
-
-    public function makeGroupCacheTags($groupName) {
-        $jobNames = $this->getJobsInGroup($groupName);
-
-        $groupTags = $this->cacheRepository->makeTags("job-central-group", $groupName,null);
-        $jobTags = $this->makeJobCacheTags($jobNames);
-
-        return array_merge($groupTags, $jobTags);
+        $this->jcJobRepository = resolve(JCJobRepository::class);
     }
 
     /**
@@ -177,14 +38,14 @@ class ApiController extends Controller
             return;
         }
 
-        $enabledJobs = $this->getJobsInGroup($group);
+        $enabledJobs = $this->jcJobRepository->getJobsInGroup($group);
 
         $labels = $series = $seriesNames = [];
 
         if($days <= 3) {
             // Create label for each hour
             for($i = 0; $i < $days * 24; $i += 1) {
-                $targetDate = now()->minute(0)->second(0)->subHour($i);
+                $targetDate = now()->minute(0)->second(0)->subHours($i);
                 array_push($labels, $targetDate->format('H:00'));
             }
             $labels = array_reverse($labels);
@@ -202,8 +63,8 @@ class ApiController extends Controller
             if($days <= 3) {
                 // Prepare job data per hour
                 for($i = 0; $i < $days * 24; $i += 1) {
-                    $startDate = now()->minute(0)->second(0)->subHour($i);
-                    $endDate = now()->minute(0)->second(0)->subHour($i)->addHours(1);
+                    $startDate = now()->minute(0)->second(0)->subHours($i);
+                    $endDate = now()->minute(0)->second(0)->subHours($i)->addHours(1);
 
                     $runs = JCJob::whereBetween('finished_or_failed_at', [$startDate, $endDate])
                         ->where('job_class', $jobClass)->count();
@@ -224,7 +85,7 @@ class ApiController extends Controller
             array_push($seriesNames, $jobClass);
         }
 
-        $payload = $this->makeLineChart($labels, $series, $seriesNames);
+        $payload = $this->jcJobRepository->makeLineChart($labels, $series, $seriesNames);
 
         return response()->json($payload);
     }
@@ -240,7 +101,7 @@ class ApiController extends Controller
             return;
         }
 
-        $enabledJobs = $this->getJobsInGroup($group)->toArray();
+        $enabledJobs = $this->jcJobRepository->getJobsInGroup($group)->toArray();
 
         $categories = [];
         $series = [[],[]];
@@ -263,7 +124,7 @@ class ApiController extends Controller
             $series[1][] = $successfulJobs;
         }
 
-        $payload = $this->makeColumnChart($categories, $series);
+        $payload = $this->jcJobRepository->makeColumnChart($categories, $series);
 
         return response()->json($payload);
     }
@@ -280,7 +141,7 @@ class ApiController extends Controller
         }
 
         $fromDate = Carbon::today()->subDays($days);
-        $enabledJobs = $this->getJobsInGroup($group)->toArray();
+        $enabledJobs = $this->jcJobRepository->getJobsInGroup($group)->toArray();
 
         $jcJobsExceptions = JCJob::whereDate('finished_or_failed_at', '>=', $fromDate)
             ->whereIn('job_class', $enabledJobs)
@@ -301,7 +162,7 @@ class ApiController extends Controller
             ];
         })->toArray();
 
-        $payload = $this->makeList($exceptions);
+        $payload = $this->jcJobRepository->makeList($exceptions);
 
         return response()->json($payload);
     }
@@ -326,7 +187,7 @@ class ApiController extends Controller
             array_push($series[0], $jobRunCount);
         }
 
-        $payload = $this->makeLineChart($labels, $series);
+        $payload = $this->jcJobRepository->makeLineChart($labels, $series);
 
         return response()->json($payload);
     }
@@ -359,7 +220,7 @@ class ApiController extends Controller
             $series[1][] = $successfulRuns;
         }
 
-        $payload = $this->makeColumnChart($categories, $series);
+        $payload = $this->jcJobRepository->makeColumnChart($categories, $series);
 
         return response()->make($payload);
     }
