@@ -36,7 +36,7 @@ class ClearOldJCJobs implements ShouldQueue
      */
     public function handle()
     {
-        $expirationDate = now()->subDays(config('job-central.keep-logs-for-days'));
-        JCJob::query()->where('finished_or_failed_at', '<=', $expirationDate)->delete();
+        $expirationDate = today()->subDays(config('job-central.keep-logs-for-days'));
+        JCJob::query()->whereDate('finished_or_failed_at', '<=', $expirationDate)->delete();
     }
 }
