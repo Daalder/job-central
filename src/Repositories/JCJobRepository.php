@@ -2,6 +2,7 @@
 
 namespace Daalder\JobCentral\Repositories;
 
+use Daalder\JobCentral\Models\JCJobFetcher;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -16,15 +17,19 @@ class JCJobRepository
      */
     protected $cacheRepository;
 
+    /**
+     * @var JCJobFetcher
+     */
+    protected $jcJobFetcher;
+
     public function __construct() {
         $this->cacheRepository = resolve(CacheRepository::class);
+        $this->cacheRepository->setDefaultTTL(5); // 5 minutes
+        $this->jcJobFetcher = resolve(JCJobFetcher::class);
     }
 
     public function makeJobRunsLineChart(array $jobs, $days = null, $hours = null) {
-        $key = 'job-central-jobruns-linechart';
-        $params = [$jobs, $days, $hours];
-
-        return $this->cacheRepository->remember($key, function () use ($jobs, $days, $hours) {
+        return $this->cacheRepository->remember('job-central-jobruns-linechart', function () use ($jobs, $days, $hours) {
             if($days) {
                 $xLabels = $this->makeDailyLabels($days);
             } else {
@@ -35,20 +40,11 @@ class JCJobRepository
             $chart = $this->makeLineChart($xLabels, $series, $jobs);
 
             return response()->json($chart);
-        }, $params, function ($results) use ($jobs) {
-            $tags = [];
-            foreach ($jobs as $jobClass) {
-                $tags[] = 'job-central-'.Str::lower($jobClass);
-            }
-            return $tags;
-        });
+        }, [$jobs, $days, $hours]);
     }
 
     public function makeJobResultsColumnChart(array $jobs, $days = null, $hours = null) {
-        $key = 'job-central-jobresults-columnchart';
-        $params = [$jobs, $days, $hours];
-
-        return $this->cacheRepository->remember($key, function () use ($jobs, $days, $hours) {
+        return $this->cacheRepository->remember('job-central-jobresults-columnchart', function () use ($jobs, $days, $hours) {
             if($days) {
                 $categories = $this->makeDailyLabels($days);
             } else {
@@ -59,30 +55,15 @@ class JCJobRepository
             $chart = $this->makeColumnChart($categories, $series);
 
             return response()->json($chart);
-        }, $params, function ($results) use ($jobs) {
-            $tags = [];
-            foreach ($jobs as $jobClass) {
-                $tags[] = 'job-central-'.Str::lower($jobClass);
-            }
-            return $tags;
-        });
+        }, [$jobs, $days, $hours]);
     }
 
     public function makeExceptionsList(array $jobs, $days = null, $hours = null) {
-        $key = 'job-central-exceptions-list';
-        $params = [$jobs, $days, $hours];
-
-        return $this->cacheRepository->remember($key, function () use ($jobs, $days, $hours) {
+        return $this->cacheRepository->remember('job-central-exceptions-list', function () use ($jobs, $days, $hours) {
             $items = $this->getExceptionListItems($jobs, $days, $hours);
             $chart = $this->makeList($items);
             return response()->json($chart);
-        }, $params, function ($results) use ($jobs) {
-            $tags = [];
-            foreach ($jobs as $jobClass) {
-                $tags[] = 'job-central-'.Str::lower($jobClass);
-            }
-            return $tags;
-        });
+        }, [$jobs, $days, $hours]);
     }
 
     public function getJobsInGroup($group) {
@@ -116,27 +97,42 @@ class JCJobRepository
     }
 
     private function getJobRunsLineChartSeries(array $jobs, $days = null, $hours = null) {
+        $params = [
+            'filter' => [
+                'job_class' => '',
+                'finished_or_failed_at' => [
+                    'min' => '',
+                    'max' => ''
+                ],
+            ]
+        ];
+
         $series = [];
+        $startDate = $endDate = $histogramKey = null;
+
+        if($days) {
+            $startDate = today()->subDays($days - 1)->hours(0)->minutes(0)->seconds(0);
+            $endDate = today()->hours(23)->minutes(59)->seconds(59);
+            $histogramKey = 'histogram_daily';
+        } else {
+            $startDate = now()->minute(0)->second(0)->subHours($hours - 1);
+            $endDate = now()->minute(0)->second(0)->subHours($hours - 1)->addHours($hours);
+            $histogramKey = 'histogram_hourly';
+        }
+
+        $params['filter']['finished_or_failed_at']['min'] = $startDate->toDateTimeString();
+        $params['filter']['finished_or_failed_at']['max'] = $endDate->toDateTimeString();
 
         foreach($jobs as $jobClass) {
+            $params['filter']['job_class'] = $jobClass;
+
+            $results = $this->jcJobFetcher->search($params);
+            $histogram = $results->aggregations[$histogramKey]['buckets'];
+            $total = $results->total;
+
             $serie = [];
-
-            if($days) {
-                for($i = 0; $i < $days; $i++) {
-                    $targetDate = today()->subDays($days - 1)->addDays($i);
-                    $runs = JCJob::whereDate('finished_or_failed_at', $targetDate)->where('job_class', $jobClass)->count();
-
-                    array_push($serie, $runs);
-                }
-            } else {
-                for($i = 0; $i < $hours; $i += 1) {
-                    $startDate = now()->minute(0)->second(0)->subHours($hours - 1)->addHours($i);
-                    $endDate = now()->minute(0)->second(0)->subHours($hours - 1)->addHours($i + 1);
-
-                    $runs = JCJob::whereBetween('finished_or_failed_at', [$startDate, $endDate])
-                        ->where('job_class', $jobClass)->count();
-                    array_push($serie, $runs);
-                }
+            foreach($histogram as $dateTimeChunk) {
+                array_push($serie, $dateTimeChunk['doc_count']);
             }
 
             array_push($series, $serie);
@@ -146,47 +142,64 @@ class JCJobRepository
     }
 
     private function getJobRunsColumnChartSeries(array $jobs, $days = null, $hours = null) {
+        $params = [
+            'filter' => [
+                'job_class' => $jobs,
+                'finished_or_failed_at' => [
+                    'min' => '',
+                    'max' => ''
+                ],
+                'status' => '',
+            ]
+        ];
+
         $series = [[],[]];
+        $startDate = $endDate = null;
 
         if($days) {
-            for($i = 0; $i < $days; $i++) {
-                $targetDate = today()->subDays($days - $i -1);
-
-                $failedJobs = JCJob::whereDate('finished_or_failed_at', $targetDate)
-                    ->whereIn('job_class', $jobs)
-                    ->where('status', JCJob::FAILED)
-                    ->count();
-                $successfulJobs = JCJob::whereDate('finished_or_failed_at', $targetDate)
-                    ->whereIn('job_class', $jobs)
-                    ->where('status', JCJob::SUCCEEDED)
-                    ->count();
-
-                $series[0][] = $failedJobs;
-                $series[1][] = $successfulJobs;
-            }
+            $startDate = today()->subDays($days - 1)->hours(0)->minutes(0)->seconds(0);
+            $endDate = today()->hours(23)->minutes(59)->seconds(59);
+            $histogramKey = 'histogram_daily';
         } else {
-            for($i = 0; $i < $hours; $i++) {
-                $startDate = now()->minute(0)->second(0)->subHours($hours - 1)->addHours($i);
-                $endDate = now()->minute(0)->second(0)->subHours($hours - 1)->addHours($i + 1);
+            $startDate = now()->minute(0)->second(0)->subHours($hours - 1);
+            $endDate = now()->minute(0)->second(0)->subHours($hours - 1)->addHours($hours);
+            $histogramKey = 'histogram_hourly';
+        }
 
-                $failedJobs = JCJob::whereBetween('finished_or_failed_at', [$startDate, $endDate])
-                    ->whereIn('job_class', $jobs)
-                    ->where('status', JCJob::FAILED)
-                    ->count();
-                $successfulJobs = JCJob::whereBetween('finished_or_failed_at', [$startDate, $endDate])
-                    ->whereIn('job_class', $jobs)
-                    ->where('status', JCJob::SUCCEEDED)
-                    ->count();
+        $params['filter']['finished_or_failed_at']['min'] = $startDate->toDateTimeString();
+        $params['filter']['finished_or_failed_at']['max'] = $endDate->toDateTimeString();
 
-                $series[0][] = $failedJobs;
-                $series[1][] = $successfulJobs;
-            }
+        $params['filter']['status'] = JCJob::FAILED;
+        $failedJobResults = $this->jcJobFetcher->search($params);
+        $failedJobHistogram = $failedJobResults->aggregations[$histogramKey]['buckets'];
+
+        $params['filter']['status'] = JCJob::SUCCEEDED;
+        $succeededJobResults = $this->jcJobFetcher->search($params);
+        $succeededJobHistogram = $succeededJobResults->aggregations[$histogramKey]['buckets'];
+
+        foreach($failedJobHistogram as $dateTimeChunk) {
+            $series[0][] = $dateTimeChunk['doc_count'];
+        }
+
+        foreach($succeededJobHistogram as $dateTimeChunk) {
+            $series[1][] = $dateTimeChunk['doc_count'];
         }
 
         return $series;
     }
 
     private function getExceptionListItems(array $jobs, $days = null, $hours = null) {
+        $params = [
+            'filter' => [
+                'job_class' => $jobs,
+                'finished_or_failed_at' => [
+                    'min' => '',
+                    'max' => ''
+                ],
+                'status' => JCJob::FAILED,
+            ]
+        ];
+
         if($days) {
             $startDate = now()->minute(0)->second(0)->subDays($days - 1);
             $endDate = now()->minute(0)->second(0)->subDays($days - 1)->addDays($days + 1);
@@ -195,22 +208,33 @@ class JCJobRepository
             $endDate = now()->minute(0)->second(0)->subHours($hours - 1)->addHours($hours);
         }
 
-        $jcJobsExceptions = JCJob::whereBetween('finished_or_failed_at', [$startDate, $endDate])
-            ->whereIn('job_class', $jobs)
-            ->whereNotNull('exception')->get();
+        $params['filter']['job_class'] = $jobs;
+        $params['filter']['finished_or_failed_at']['min'] = $startDate->toDateTimeString();
+        $params['filter']['finished_or_failed_at']['max'] = $endDate->toDateTimeString();
 
-        $jcJobsExceptionGroups = $jcJobsExceptions->groupBy(function($jcJob) {
-            return $jcJob->exception;
+        $jcJobExceptions = $this->jcJobFetcher->search($params);
+
+        $hits = $this->jcJobFetcher->search($params)->hits['hits'];
+        if(count($hits) === 0) {
+            return [];
+        }
+        $hits = collect($hits)->pluck('_source');
+
+        $jcJobsExceptionGroups = $hits->groupBy(function($jcJob) {
+            return $jcJob['exception'];
         })->map(function($exceptionGroup) {
             return $exceptionGroup->sortByDesc('finished_or_failed_at');
         })->sortByDesc(function($exceptionGroup) {
-            return $exceptionGroup->first()->finished_or_failed_at;
+            return $exceptionGroup->first()['finished_or_failed_at'];
         });
 
         return $jcJobsExceptionGroups->map(function($jcJobGroup, $exception) {
+            // Dates from ElasticSearch are in UTC format. Parse to local timezone with fallback to UTC ('Z')
+            $lastSeen = Carbon::createFromDate($jcJobGroup->first()['finished_or_failed_at'])->setTimezone(config('app.timezone') ?? 'Z')->format('d-m-Y H:i:s');
+
             return [
                 'title' => $exception,
-                'subtitle' => $jcJobGroup->count() . 'x - Last seen: ' . Carbon::parse($jcJobGroup->first()->finished_or_failed_at)->format('d-m-Y h:i:s')
+                'subtitle' => $jcJobGroup->count() . 'x - Last seen: ' . $lastSeen
             ];
         })->toArray();
     }

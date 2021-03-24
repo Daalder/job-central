@@ -11,14 +11,13 @@ use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
-use Pionect\Daalder\Services\Cache\CacheRepository;
+use Pionect\Daalder\Jobs\Elastic\MakeModelsSearchable;
 
 class QueueLoggingProvider extends ServiceProvider
 {
     public function __construct($app)
     {
         parent::__construct($app);
-        $this->cacheRepository = resolve(CacheRepository::class);
     }
 
     private function jobIsJCEnabled($jobClassPath) {
@@ -36,8 +35,6 @@ class QueueLoggingProvider extends ServiceProvider
             $jcJob->status = $status;
             $jcJob->finished_or_failed_at = now();
             $jcJob->save();
-
-            $this->cacheRepository->clear('job-central-'.Str::lower($jcJob->job_class));
         }
     }
 
@@ -46,15 +43,28 @@ class QueueLoggingProvider extends ServiceProvider
         if($jcJob) {
             $jcJob->exception = $exception->getMessage();
             $jcJob->save();
-
-            $this->cacheRepository->clear('job-central-'.Str::lower($jcJob->job_class));
         }
     }
 
-    private function makeJCJob($id, $jobClassPath) {
+    private function makeJCJob($id, $jobClassPath, $event) {
         // If logging is enabled for this job class
         if($this->jobIsJCEnabled($jobClassPath)) {
             $jobClass = Arr::last(explode('\\', $jobClassPath));
+
+            // Don't make a JCJob when $event->job is a MakeModelsSearchable that's syncing a JCJob to ES.
+            // That creates an infinite loop.
+            if($jobClass === Arr::last(explode('\\', MakeModelsSearchable::class))) {
+                $command = $event->job->payload()['data']['command'];
+                if($command) {
+                    $command = unserialize($command);
+                    if($command->models !== null && $command->models->count() > 0) {
+                        $syncingModelClass = get_class($command->models->first());
+                        if($syncingModelClass === JCJob::class) {
+                            return;
+                        }
+                    }
+                }
+            }
 
             // Prevent duplicate entries between restarting queue workers/listeners
             $existingEntryWithId = JCJob::where('job_id', '=', $id)->first();
@@ -64,8 +74,6 @@ class QueueLoggingProvider extends ServiceProvider
                     'job_class' => $jobClass,
                     'status' => JCJob::RUNNING,
                 ])->save();
-
-                $this->cacheRepository->clear('job-central-'.Str::lower($jobClass));
             }
         }
     }
@@ -91,7 +99,7 @@ class QueueLoggingProvider extends ServiceProvider
 
         Queue::before(function (JobProcessing $event) {
             // This job will now start running
-            $this->makeJCJob($event->job->uuid(), $event->job->payload()['displayName']);
+            $this->makeJCJob($event->job->uuid(), $event->job->payload()['displayName'], $event);
         });
 
         Queue::exceptionOccurred(function(JobExceptionOccurred $event) {

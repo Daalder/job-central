@@ -20,7 +20,7 @@ class ClearOldJCJobs implements ShouldQueue
      *
      * @var int
      */
-    public $timeout = 300;
+    public $timeout = 900;
 
     /**
      * The number of times the job may be attempted.
@@ -37,6 +37,12 @@ class ClearOldJCJobs implements ShouldQueue
     public function handle()
     {
         $expirationDate = today()->subDays(config('job-central.keep-logs-for-days'));
-        JCJob::query()->whereDate('finished_or_failed_at', '<=', $expirationDate)->delete();
+        JCJob::query()
+            ->whereDate('finished_or_failed_at', '<=', $expirationDate)
+            ->unsearchable();
+
+        JCJob::query()
+            ->whereDate('finished_or_failed_at', '<=', $expirationDate)
+            ->delete();
     }
 }
