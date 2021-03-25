@@ -2,6 +2,8 @@
 
 namespace Daalder\JobCentral\Models;
 
+use Database\Factories\Product\JCJobFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
 use Pionect\Daalder\Models\Searchable;
@@ -20,7 +22,7 @@ use Pionect\Daalder\Models\Searchable;
  */
 class JCJob extends Model
 {
-    use Searchable;
+    use Searchable, HasFactory;
 
     protected $table = 'job_central';
 
@@ -94,5 +96,10 @@ class JCJob extends Model
             'updated_at' => $this->updated_at ? $this->finished_or_failed_at->format('Y-m-d H:i:s') : null,
             'finished_or_failed_at' => $this->finished_or_failed_at ? $this->finished_or_failed_at->format('Y-m-d H:i:s') : null,
         ];
+    }
+
+    protected static function newFactory()
+    {
+        return JCJobFactory::new();
     }
 }

@@ -9,9 +9,11 @@ use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\File;
 use Laravel\Passport\PassportServiceProvider;
 use Laravel\Scout\ScoutServiceProvider;
+use Orchestra\Database\ConsoleServiceProvider;
 use Pionect\Daalder\DaalderServiceProvider;
 use Pionect\Daalder\ServiceProviders\ElasticScoutConfigServiceProvider;
 use Pionect\Daalder\Tests\TestCase as DaalderTestCase;
+use ScoutElastic\ScoutElasticServiceProvider;
 use Spatie\Permission\PermissionServiceProvider;
 
 class TestCase extends DaalderTestCase
@@ -29,7 +31,9 @@ class TestCase extends DaalderTestCase
                 '--drop-views' => $this->shouldDropViews(),
                 '--drop-types' => $this->shouldDropTypes(),
             ]);
+
             $this->artisan('db:seed');
+            $this->artisan('elastic:sync --drop --create');
 
             $this->app[Kernel::class]->setArtisan(null);
 
@@ -50,6 +54,10 @@ class TestCase extends DaalderTestCase
      */
     protected function getEnvironmentSetUp($app)
     {
+        $app['config']->set('searchable.models', [
+            'jcJob' => \Daalder\JobCentral\Models\JCJob::class,
+        ]);
+        
         foreach (File::files(__DIR__ . '/../vendor/pionect/daalder/config') as $config) {
             if ($config->getExtension() == 'php') {
                 $key = str_replace('.php', '', $config->getFilename());
@@ -79,6 +87,8 @@ class TestCase extends DaalderTestCase
             PermissionServiceProvider::class,
             TranslatableServiceProvider::class,
             JobCentralServiceProvider::class,
+            ConsoleServiceProvider::class,
+            ScoutElasticServiceProvider::class,
         ];
     }
 
