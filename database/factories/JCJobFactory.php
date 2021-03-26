@@ -50,9 +50,9 @@ class JCJobFactory extends Factory {
             'job_id' => $this->faker->uuid,
             'job_class' => $jcEnabledJobs->random(),
             'status' => JCJob::SUCCEEDED,
-            'created_at' => $createdAt,
-            'updated_at' => $updatedAt,
-            'finished_or_failed_at' => $updatedAt,
+            'created_at' => $createdAt->format('Y-m-d H:i:s'),
+            'updated_at' => $updatedAt->format('Y-m-d H:i:s'),
+            'finished_or_failed_at' => $updatedAt->format('Y-m-d H:i:s'),
         ];
     }
 

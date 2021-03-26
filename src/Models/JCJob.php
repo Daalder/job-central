@@ -92,8 +92,8 @@ class JCJob extends Model
             'job_class' => $this->job_class,
             'exception' => $this->exception,
             'status' => $this->status,
-            'created_at' => $this->created_at ? $this->finished_or_failed_at->format('Y-m-d H:i:s') : null,
-            'updated_at' => $this->updated_at ? $this->finished_or_failed_at->format('Y-m-d H:i:s') : null,
+            'created_at' => $this->created_at ? $this->created_at->format('Y-m-d H:i:s') : null,
+            'updated_at' => $this->updated_at ? $this->updated_at->format('Y-m-d H:i:s') : null,
             'finished_or_failed_at' => $this->finished_or_failed_at ? $this->finished_or_failed_at->format('Y-m-d H:i:s') : null,
         ];
     }
