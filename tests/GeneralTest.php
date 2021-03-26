@@ -27,15 +27,6 @@ class GeneralTest extends DaalderTestCase
                 return array_sum($array);
             });
 
-        $json = $this->getJson("/job-central/jobruns-linechart?hours=$hours&group=*")
-            ->assertSuccessful()
-            ->json();
-
-        $totalJobsCountOne = collect($json['series'])->pluck('data')
-            ->sum(function($array){
-                return array_sum($array);
-            });
-
         JCJob::factory()->count(10)->create();
         sleep(5); // Syncing to ElasticSearch
 
