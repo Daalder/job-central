@@ -4,6 +4,7 @@ namespace Daalder\JobCentral\Tests;
 
 use Astrotomic\Translatable\TranslatableServiceProvider;
 use Daalder\JobCentral\JobCentralServiceProvider;
+use Daalder\JobCentral\Models\JCJob;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\File;
@@ -33,7 +34,12 @@ class TestCase extends DaalderTestCase
             ]);
 
             $this->artisan('db:seed');
-            $this->artisan('elastic:sync --drop --create');
+            // Only (re-)create indexes
+            $this->artisan('elastic:sync --drop --create --only');
+            // Make sure the jc_job ES index is created properly
+            JCJob::factory()->count(1)->create();
+            // Do full ES sync now
+            $this->artisan('elastic:sync');
 
             $this->app[Kernel::class]->setArtisan(null);
 
