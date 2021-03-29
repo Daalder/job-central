@@ -16,7 +16,7 @@
         <server name="APP_DEBUG" value="true"/>
         <server name="APP_KEY" value="AckfSECXIvnK5r28GVIWUAxmbBSjTsmF"/>
         <ini name="memory_limit" value="-1"/>
-        <server name="SCOUT_DRIVER" value="array"/>
+        <server name="SCOUT_DRIVER" value="elastic"/>
         <server name="CACHE_DRIVER" value="array"/>
         <server name="QUEUE_CONNECTION" value="sync"/>
         <server name="DB_CONNECTION" value="testing"/>
@@ -25,8 +25,8 @@
         <server name="DB_DATABASE" value="unit_tests"/>
         <server name="DB_USERNAME" value="root"/>
         <server name="DB_PASSWORD" value="root"/>
-        <server name="ELASTICSEARCH_HOST" value="es01:9200"/>
-        <server name="SCOUT_ELASTIC_HOST" value="es01:9200"/>
+        <server name="ELASTICSEARCH_HOST" value="127.0.0.1:9200"/>
+        <server name="SCOUT_ELASTIC_HOST" value="127.0.0.1:9200"/>
         <server name="FRONTEND" value="http://daalder.io/"/>
         <server name="MAIL_FROM_ADDRESS" value="daalder@daalder.io"/>
         <server name="MAIL_FROM_NAME" value="Daalder.io"/>

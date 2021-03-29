@@ -5,6 +5,7 @@ namespace Daalder\JobCentral\Models;
 use Illuminate\Database\Eloquent;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Carbon;
 use Lorisleiva\LaravelSearchString\SearchStringManager;
 use ONGR\ElasticsearchDSL\Aggregation\Bucketing\DateHistogramAggregation;
 use ONGR\ElasticsearchDSL\Aggregation\Bucketing\FilterAggregation;
@@ -166,28 +167,48 @@ class JCJobFetcher
      */
     public function buildAggregations($params = [])
     {
-        $aggregrations = [];
+        $aggregations = [];
 
-        array_push($aggregrations, new DateHistogramAggregation(
-            'histogram_hourly',
-            'finished_or_failed_at',
-            '1h',
-            'yyyy-MM-dd kk:mm:ss'
-        ));
+        if(!array_has($params, 'filter') && !array_has($params['filter'], 'finished_or_failed_at')) {
+            return [];
+        }
 
-        array_push($aggregrations, new DateHistogramAggregation(
+        $dateMin = Carbon::parse($params['filter']['finished_or_failed_at']['min']);
+        $dateMax = Carbon::parse($params['filter']['finished_or_failed_at']['max']);
+
+        $hourlyAggregation = new DateHistogramAggregation(
+        'histogram_hourly',
+        'finished_or_failed_at',
+        '1h',
+        'yyyy-MM-dd kk:mm:ss',
+        );
+
+        $hourlyAggregation->addParameter('extended_bounds', [
+            'min' => $dateMin->format('Y-m-d H:i:s'),
+            'max' => $dateMax->format('Y-m-d H:i:s')
+        ]);
+
+        $dailyAggregation = new DateHistogramAggregation(
             'histogram_daily',
             'finished_or_failed_at',
             '1d',
             'yyyy-MM-dd'
-        ));
+        );
 
-        foreach($aggregrations as $key => $aggregration) {
-            $aggregationBuilder = new AggregationBuilder($aggregration);
+        $dailyAggregation->addParameter('extended_bounds', [
+            'min' => $dateMin->format('Y-m-d'),
+            'max' => $dateMax->format('Y-m-d')
+        ]);
+
+        array_push($aggregations, $hourlyAggregation);
+        array_push($aggregations, $dailyAggregation);
+
+        foreach($aggregations as $key => $aggregation) {
+            $aggregationBuilder = new AggregationBuilder($aggregation);
             event($aggregationBuilder);
-            $aggregrations[$key] = $aggregationBuilder->getMainAggregation();
+            $aggregations[$key] = $aggregationBuilder->getMainAggregation();
         }
 
-        return $aggregrations;
+        return $aggregations;
     }
 }
