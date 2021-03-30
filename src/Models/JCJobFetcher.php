@@ -180,12 +180,12 @@ class JCJobFetcher
         'histogram_hourly',
         'finished_or_failed_at',
         '1h',
-        'yyyy-MM-dd kk:mm:ss',
+        'yyyy-MM-dd H:m:s',
         );
 
         $hourlyAggregation->addParameter('extended_bounds', [
-            'min' => $dateMin->format('Y-m-d H:i:s'),
-            'max' => $dateMax->format('Y-m-d H:i:s')
+            'min' => $dateMin->format('Y-m-d H:m:s'),
+            'max' => $dateMax->format('Y-m-d H:m:s')
         ]);
 
         $dailyAggregation = new DateHistogramAggregation(
