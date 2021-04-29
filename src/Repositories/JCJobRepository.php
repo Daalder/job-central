@@ -2,6 +2,7 @@
 
 namespace Daalder\JobCentral\Repositories;
 
+use Daalder\JobCentral\Events\BeforeCachingChart;
 use Daalder\JobCentral\Models\JCJobFetcher;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
@@ -39,7 +40,10 @@ class JCJobRepository
             $series = $this->getJobRunsLineChartSeries($jobs, $days, $hours);
             $chart = $this->makeLineChart($xLabels, $series, $jobs);
 
-            return response()->json($chart);
+
+            $event = new BeforeCachingChart($chart);
+            event($event);
+            return response()->json($event->getChart());
         }, [$jobs, $days, $hours]);
     }
 
@@ -54,7 +58,9 @@ class JCJobRepository
             $series = $this->getJobRunsColumnChartSeries($jobs, $days, $hours);
             $chart = $this->makeColumnChart($categories, $series);
 
-            return response()->json($chart);
+            $event = new BeforeCachingChart($chart);
+            event($event);
+            return response()->json($event->getChart());
         }, [$jobs, $days, $hours]);
     }
 
@@ -62,15 +68,18 @@ class JCJobRepository
         return $this->cacheRepository->remember('job-central-exceptions-list', function () use ($jobs, $days, $hours) {
             $items = $this->getExceptionListItems($jobs, $days, $hours);
             $chart = $this->makeList($items);
-            return response()->json($chart);
+
+            $event = new BeforeCachingChart($chart);
+            event($event);
+            return response()->json($event->getChart());
         }, [$jobs, $days, $hours]);
     }
 
     public function getJobsInGroup($group) {
         if($group === '*') {
-            $enabledJobs = collect(config('job-central.groups'))->flatten();
+            $enabledJobs = collect(config('job-central.groups'))->flatten()->unique()->values();
         } else {
-            $enabledJobs = collect(config('job-central.groups')[$group]);
+            $enabledJobs = collect(config('job-central.groups')[$group])->unique()->values();
         }
 
         return $enabledJobs->map(function($jobClass) {
