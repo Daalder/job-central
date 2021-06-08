@@ -7,6 +7,7 @@ use Daalder\JobCentral\Providers\QueueLoggingProvider;
 use Daalder\JobCentral\Providers\RouteServiceProvider;
 use Daalder\JobCentral\Testing\TestCommand;
 use Daalder\JobCentral\Validators\JobCentralValidator;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Pionect\Daalder\Services\Cache\CacheRepository;
 use Validator;
@@ -34,6 +35,13 @@ class JobCentralServiceProvider extends ServiceProvider
     public function boot()
     {
         parent::boot();
+
+        $this->app->booted(function () {
+            $schedule = $this->app->make(Schedule::class);
+            $schedule->job(\Daalder\JobCentral\Jobs\ClearOldJCJobs::class)
+                ->dailyAt('3:00');
+        });
+
         Validator::extend('empty_with', JobCentralValidator::class.'@validateEmptyWith');
 
         $this->publishes([

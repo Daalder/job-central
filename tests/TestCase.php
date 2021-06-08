@@ -4,14 +4,17 @@ namespace Daalder\JobCentral\Tests;
 
 use Astrotomic\Translatable\TranslatableServiceProvider;
 use Daalder\JobCentral\JobCentralServiceProvider;
+use Daalder\JobCentral\Models\JCJob;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\File;
 use Laravel\Passport\PassportServiceProvider;
 use Laravel\Scout\ScoutServiceProvider;
+use Orchestra\Database\ConsoleServiceProvider;
 use Pionect\Daalder\DaalderServiceProvider;
 use Pionect\Daalder\ServiceProviders\ElasticScoutConfigServiceProvider;
 use Pionect\Daalder\Tests\TestCase as DaalderTestCase;
+use ScoutElastic\ScoutElasticServiceProvider;
 use Spatie\Permission\PermissionServiceProvider;
 
 class TestCase extends DaalderTestCase
@@ -29,7 +32,14 @@ class TestCase extends DaalderTestCase
                 '--drop-views' => $this->shouldDropViews(),
                 '--drop-types' => $this->shouldDropTypes(),
             ]);
+
             $this->artisan('db:seed');
+            // Only (re-)create indexes
+            $this->artisan('elastic:sync --drop --create --only');
+            // Make sure the jc_job ES index is created properly
+            JCJob::factory()->count(1)->create();
+            // Do full ES sync now
+            $this->artisan('elastic:sync');
 
             $this->app[Kernel::class]->setArtisan(null);
 
@@ -50,6 +60,10 @@ class TestCase extends DaalderTestCase
      */
     protected function getEnvironmentSetUp($app)
     {
+        $app['config']->set('searchable.models', [
+            'jcJob' => \Daalder\JobCentral\Models\JCJob::class,
+        ]);
+        
         foreach (File::files(__DIR__ . '/../vendor/pionect/daalder/config') as $config) {
             if ($config->getExtension() == 'php') {
                 $key = str_replace('.php', '', $config->getFilename());
@@ -79,6 +93,8 @@ class TestCase extends DaalderTestCase
             PermissionServiceProvider::class,
             TranslatableServiceProvider::class,
             JobCentralServiceProvider::class,
+            ConsoleServiceProvider::class,
+            ScoutElasticServiceProvider::class,
         ];
     }
 
