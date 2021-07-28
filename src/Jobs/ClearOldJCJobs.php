@@ -20,7 +20,7 @@ class ClearOldJCJobs implements ShouldQueue
      *
      * @var int
      */
-    public $timeout = 900;
+    public $timeout = 3600;
 
     /**
      * The number of times the job may be attempted.
